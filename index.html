@@ -304,10 +304,10 @@
 <script>
 (function(){
   var STAGES=[
-    {id:'cover', em:'🏜️', nm:'Cover',  prompt:'Cover the bulldozer in dirt!', label:'DUMP!',  actEm:'🚚', say:'Cover the bulldozer in dirt!'},
-    {id:'soap',  em:'🫧', nm:'Soap',   prompt:'Splash on the soapy water!',    label:'SOAP!',  actEm:'🫧', say:'Now splash on the soapy water!'},
-    {id:'rinse', em:'💧', nm:'Rinse',  prompt:'Rinse all the soap away!',      label:'RINSE!', actEm:'💧', say:'Rinse all the soap away!'},
-    {id:'dry',   em:'🌀', nm:'Dry',    prompt:'Turn on the big fan to dry!',   label:'DRY!',   actEm:'🌀', say:'Last one! Turn on the big fan to dry!'}
+    {id:'cover', em:'🏜️', nm:'Cover',  prompt:'Cover the bulldozer in dirt!', label:'DUMP!',  actEm:'🚚', say:"Let's cover the bulldozer with dirt. Dump it on!"},
+    {id:'soap',  em:'🫧', nm:'Soap',   prompt:'Splash on the soapy water!',    label:'SOAP!',  actEm:'🫧', say:'Yay! Now, splash on lots of soapy bubbles!'},
+    {id:'rinse', em:'💧', nm:'Rinse',  prompt:'Rinse all the soap away!',      label:'RINSE!', actEm:'💧', say:'Splash, splash! Rinse all the soap away!'},
+    {id:'dry',   em:'🌀', nm:'Dry',    prompt:'Turn on the big fan to dry!',   label:'DRY!',   actEm:'🌀', say:"Almost done! Let's dry it with the big fan!"}
   ];
   var TAPS=4;
   var stageIdx=0, prog=0, busy=false, done=false, started=false;
@@ -342,14 +342,39 @@
     o.connect(g).connect(c.destination); o.start(t); o.stop(t+(dur||.15)+.02);
   }
   function chord(list){ list.forEach(function(f,i){beep(f,.4,'triangle',i*.07,.28)}); }
-  // spoken narration for pre-readers
+  // spoken narration for pre-readers — hunt down the most natural, warm voice
   var canSpeak = 'speechSynthesis' in window;
+  var voice=null;
+  function scoreVoice(v){
+    var n=(v.name||'').toLowerCase(), lang=(v.lang||'').toLowerCase(), s=0;
+    if(lang.indexOf('en')===0) s+=40;                                   // English
+    if(lang==='en-us'||lang==='en-gb'||lang==='en-au') s+=10;
+    if(/natural|neural|enhanced|premium/.test(n)) s+=60;                // modern hi-fi engines
+    if(n.indexOf('google')>-1) s+=48;                                   // Google voices sound smooth
+    if(/siri/.test(n)) s+=42;
+    if(v.localService) s+=8;
+    // warm, friendly voices that read nicely to little kids
+    if(/samantha|ava|allison|serena|karen|moira|tessa|zoe|zoë|jenny|aria|libby|sonia|nora|female|kid|child/.test(n)) s+=26;
+    // push away the robotic / novelty voices
+    if(/fred|albert|ralph|zarvox|trinoids|bahh|bells|boing|bubbles|cellos|deranged|hysterical|pipe|whisper|wobble|news|jester|organ|superstar|junior|eddy|flo|grandma|grandpa|rocko|sandy|shelley/.test(n)) s-=80;
+    return s;
+  }
+  function pickVoice(){
+    if(!canSpeak)return;
+    var vs=window.speechSynthesis.getVoices()||[]; if(!vs.length)return;
+    var best=null,bs=-1e9;
+    vs.forEach(function(v){var sc=scoreVoice(v); if(sc>bs){bs=sc;best=v;}});
+    voice=best;
+  }
+  if(canSpeak){ pickVoice(); window.speechSynthesis.onvoiceschanged=pickVoice; }
   function say(text){
     if(muted||!canSpeak)return;
     try{
       window.speechSynthesis.cancel();
+      if(!voice) pickVoice();
       var u=new SpeechSynthesisUtterance(text);
-      u.rate=.92; u.pitch=1.25; u.volume=1;
+      if(voice) u.voice=voice;
+      u.rate=.96; u.pitch=1.08; u.volume=1;   // gentle, close to natural speech
       window.speechSynthesis.speak(u);
     }catch(e){}
   }
@@ -454,7 +479,7 @@
       cheer.textContent=['NICE!','GREAT!','WOW!','SUPER!'][stageIdx];
       cheer.classList.remove('show'); void cheer.offsetWidth; cheer.classList.add('show');
       chord([523,659,784]);
-      say(cheer.textContent);
+      say(['Nice job!','Great work!','Woah, awesome!','So super!'][stageIdx]);
       dozer.classList.remove('wobble'); void dozer.offsetWidth; dozer.classList.add('wobble');
       setTimeout(nextStage,950);
     }
@@ -475,7 +500,7 @@
     win.classList.add('show');
     cheer.textContent='CLEAN!'; cheer.classList.remove('show'); void cheer.offsetWidth; cheer.classList.add('show');
     chord([523,659,784,1047,1319]);
-    say('You did it! The bulldozer is all clean!');
+    say('Hooray! You did it! The bulldozer is all clean and shiny!');
     // celebratory confetti particles
     var kinds=['soap','rinse'];
     var burst=setInterval(function(){spawn(kinds[Math.floor(Math.random()*2)])},260);
