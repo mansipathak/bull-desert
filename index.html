@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Bull Desert</title>
+<meta name="description" content="A no-fail wash-the-bulldozer game for 3–6 year olds." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@700;800&display=swap" />
+<style>
+  :root{
+    --sky-top:#8ED0F0;
+    --sky-bot:#FFE7B0;
+    --sand:#E8B86D;
+    --sand-dark:#D49E4E;
+    --truck:#FFC531;
+    --truck-red:#F04E37;
+    --dozer:#FF8A3D;
+    --dozer-dark:#E0641E;
+    --dirt:#9B6A3F;
+    --soap:#EAF7FF;
+    --water:#4AA3DF;
+    --ink:#3A2C1A;
+    --panel:#FFFDF6;
+    --shadow:rgba(58,44,26,.22);
+    --focus:#1B6DE0;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:
+      radial-gradient(120% 90% at 50% 0%, var(--sky-top) 0%, var(--sky-bot) 62%, var(--sand) 100%);
+    font-family:"Nunito",system-ui,sans-serif;
+    color:var(--ink);
+    min-height:100dvh;
+    display:flex;
+    justify-content:center;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    overflow-x:hidden;
+  }
+  .game{
+    width:100%;
+    max-width:760px;
+    padding:14px clamp(10px,3vw,20px) 22px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  /* ---- Top bar ---- */
+  .topbar{display:flex;align-items:center;gap:10px;justify-content:space-between}
+  .title{
+    font-family:"Baloo 2",cursive;
+    font-weight:800;
+    font-size:clamp(26px,7vw,42px);
+    line-height:.95;
+    margin:0;
+    color:var(--truck-red);
+    text-shadow:0 2px 0 #fff, 0 4px 0 var(--shadow);
+    letter-spacing:.5px;
+  }
+  .title small{display:block;font-size:.42em;color:var(--dozer-dark);text-shadow:none;letter-spacing:1px}
+  .mute{
+    flex:0 0 auto;width:52px;height:52px;border-radius:50%;
+    border:3px solid #fff;background:var(--panel);cursor:pointer;
+    font-size:24px;box-shadow:0 4px 0 var(--shadow);display:grid;place-items:center;
+  }
+  .mute:active{transform:translateY(3px);box-shadow:0 1px 0 var(--shadow)}
+
+  /* ---- Step dots ---- */
+  .steps{display:flex;gap:8px;justify-content:center}
+  .step{
+    flex:1;max-width:150px;display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:7px 4px;border-radius:16px;background:var(--panel);
+    border:3px solid #fff;box-shadow:0 3px 0 var(--shadow);
+    opacity:.5;transition:opacity .25s, transform .25s;
+  }
+  .step .em{font-size:clamp(20px,5.5vw,28px);line-height:1}
+  .step .nm{font-family:"Baloo 2",cursive;font-weight:700;font-size:clamp(11px,3vw,14px)}
+  .step.active{opacity:1;transform:translateY(-2px) scale(1.04);border-color:var(--truck)}
+  .step.done{opacity:1}
+  .step.done .em::after{content:" ✓";color:#2E9E4F}
+
+  /* ---- Stage / scene ---- */
+  figure.scene{
+    margin:0;position:relative;border-radius:24px;overflow:hidden;
+    border:5px solid #fff;box-shadow:0 8px 0 var(--shadow);
+    background:linear-gradient(180deg,#BFE7F7 0%,#FFE7B0 60%,var(--sand) 100%);
+  }
+  svg.stage{display:block;width:100%;height:auto}
+
+  /* progress meter */
+  .meterwrap{
+    position:absolute;left:16px;right:16px;bottom:12px;height:22px;border-radius:20px;
+    background:rgba(255,255,255,.6);border:3px solid #fff;overflow:hidden;box-shadow:0 3px 0 var(--shadow);
+  }
+  .meter{height:100%;width:0%;border-radius:20px;background:linear-gradient(90deg,#7ED957,#2E9E4F);transition:width .25s cubic-bezier(.34,1.56,.64,1)}
+
+  .cheer{
+    position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;
+    font-family:"Baloo 2",cursive;font-weight:800;color:#fff;
+    font-size:clamp(30px,10vw,64px);text-shadow:0 3px 0 var(--dozer-dark),0 0 18px rgba(0,0,0,.25);
+    opacity:0;transform:scale(.4) rotate(-6deg);
+  }
+  .cheer.show{animation:pop 1s ease}
+  @keyframes pop{0%{opacity:0;transform:scale(.4) rotate(-6deg)}30%{opacity:1;transform:scale(1.1) rotate(3deg)}70%{opacity:1;transform:scale(1) rotate(-2deg)}100%{opacity:0;transform:scale(1.15)}}
+
+  /* ---- Big action button ---- */
+  .prompt{
+    text-align:center;font-family:"Baloo 2",cursive;font-weight:700;
+    font-size:clamp(18px,5vw,26px);margin:2px 0 -2px;color:var(--dozer-dark);
+    text-wrap:balance;
+  }
+  .action{
+    display:flex;align-items:center;justify-content:center;gap:14px;
+    width:100%;padding:clamp(16px,4.5vw,26px);border:none;cursor:pointer;
+    border-radius:28px;font-family:"Baloo 2",cursive;font-weight:800;
+    font-size:clamp(24px,7vw,40px);color:#fff;
+    background:linear-gradient(180deg,#FFD24A,var(--truck));
+    box-shadow:0 8px 0 #C98A00, 0 12px 18px var(--shadow);
+    transition:transform .07s, box-shadow .07s;
+    outline-offset:5px;
+  }
+  .action .bigem{font-size:1.35em;filter:drop-shadow(0 2px 0 rgba(0,0,0,.15))}
+  .action:active{transform:translateY(6px);box-shadow:0 2px 0 #C98A00,0 4px 8px var(--shadow)}
+  .action.tap{animation:squish .18s ease}
+  @keyframes squish{50%{transform:translateY(6px) scale(.98)}}
+  :focus-visible{outline:4px solid var(--focus)}
+  .action:focus-visible{outline:5px solid var(--focus)}
+
+  .hint{text-align:center;font-weight:800;color:var(--dozer-dark);opacity:.75;font-size:14px;margin-top:-4px}
+
+  /* ---- Win screen ---- */
+  .win{display:none;flex-direction:column;align-items:center;gap:14px;text-align:center;padding:8px 0 4px}
+  .win.show{display:flex;animation:pop2 .6s ease}
+  @keyframes pop2{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+  .win h2{font-family:"Baloo 2",cursive;font-weight:800;font-size:clamp(30px,9vw,52px);margin:0;color:var(--truck-red);text-shadow:0 2px 0 #fff}
+  .again{
+    padding:18px 34px;border:none;border-radius:26px;cursor:pointer;
+    font-family:"Baloo 2",cursive;font-weight:800;font-size:clamp(22px,6vw,32px);color:#fff;
+    background:linear-gradient(180deg,#7ED957,#2E9E4F);box-shadow:0 8px 0 #1C7A38;
+  }
+  .again:active{transform:translateY(6px);box-shadow:0 2px 0 #1C7A38}
+
+  /* spin for fan */
+  .fanblade{transform-box:fill-box;transform-origin:center}
+  .fan-on .fanblade{animation:spin .5s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* dozer happy wobble on dry / cheer */
+  .wobble{animation:wob .5s ease}
+  @keyframes wob{0%,100%{transform:rotate(0)}25%{transform:rotate(-3deg)}75%{transform:rotate(3deg)}}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.001s !important}
+    .meter{transition:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="game">
+  <div class="topbar">
+    <h1 class="title">Bull Desert<small>WASH THE BULLDOZER!</small></h1>
+    <button class="mute" id="mute" aria-label="Turn sound on or off">🔊</button>
+  </div>
+
+  <div class="steps" id="steps"></div>
+
+  <figure class="scene">
+    <svg class="stage" viewBox="0 0 800 460" role="img" aria-label="A dump truck helping wash a bulldozer in the desert">
+      <!-- sky sun -->
+      <circle cx="690" cy="70" r="46" fill="#FFE27A"/>
+      <circle cx="690" cy="70" r="46" fill="none" stroke="#FFCF3F" stroke-width="6" stroke-dasharray="4 22" stroke-linecap="round">
+        <animateTransform attributeName="transform" type="rotate" from="0 690 70" to="360 690 70" dur="26s" repeatCount="indefinite"/>
+      </circle>
+      <!-- clouds -->
+      <g fill="#ffffff" opacity=".9">
+        <ellipse cx="150" cy="80" rx="46" ry="22"/><ellipse cx="185" cy="70" rx="34" ry="20"/>
+        <ellipse cx="470" cy="55" rx="40" ry="19"/><ellipse cx="505" cy="48" rx="28" ry="16"/>
+      </g>
+      <!-- dunes -->
+      <path d="M0 360 Q200 320 400 356 T800 348 V460 H0 Z" fill="#EAC079"/>
+      <path d="M0 400 Q260 372 520 402 T800 392 V460 H0 Z" fill="var(--sand)"/>
+
+      <!-- ===== BULLDOZER ===== -->
+      <g id="dozer" transform="translate(400,196)">
+        <g id="dozerBody">
+          <!-- tracks -->
+          <rect x="18" y="150" width="250" height="52" rx="26" fill="#3A3F4B"/>
+          <g fill="#242832"><circle cx="58" cy="176" r="22"/><circle cx="118" cy="176" r="22"/><circle cx="178" cy="176" r="22"/><circle cx="230" cy="176" r="18"/></g>
+          <g fill="#5A6172"><circle cx="58" cy="176" r="9"/><circle cx="118" cy="176" r="9"/><circle cx="178" cy="176" r="9"/><circle cx="230" cy="176" r="7"/></g>
+          <!-- body -->
+          <rect x="46" y="72" width="196" height="86" rx="18" fill="var(--dozer)" stroke="var(--dozer-dark)" stroke-width="5"/>
+          <!-- cab -->
+          <rect x="150" y="24" width="86" height="60" rx="14" fill="#FF9F52" stroke="var(--dozer-dark)" stroke-width="5"/>
+          <rect x="162" y="34" width="46" height="36" rx="9" fill="#D7F1FF"/>
+          <!-- eyes -->
+          <circle cx="180" cy="52" r="10" fill="#fff"/><circle cx="204" cy="52" r="10" fill="#fff"/>
+          <circle cx="183" cy="54" r="5" fill="#2A2E38" id="pupilL"/><circle cx="207" cy="54" r="5" fill="#2A2E38" id="pupilR"/>
+          <path d="M176 74 Q192 86 210 74" stroke="var(--dozer-dark)" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <!-- exhaust -->
+          <rect x="70" y="46" width="12" height="30" rx="5" fill="#555B66"/>
+          <!-- blade arm + blade at front (left) -->
+          <path d="M46 108 L12 96" stroke="var(--dozer-dark)" stroke-width="9" stroke-linecap="round"/>
+          <path d="M2 60 L34 66 L34 176 L2 190 Z" fill="#FFB03A" stroke="var(--dozer-dark)" stroke-width="5" stroke-linejoin="round"/>
+        </g>
+
+        <!-- DIRT cover overlay -->
+        <g id="dirt" opacity="0">
+          <path d="M6 150 Q40 70 100 78 Q140 40 190 72 Q240 58 250 120 Q262 150 250 168 L10 168 Z"
+                fill="var(--dirt)" stroke="#7A5230" stroke-width="4"/>
+          <g fill="#7A5230" opacity=".8"><circle cx="70" cy="120" r="9"/><circle cx="150" cy="104" r="11"/><circle cx="205" cy="130" r="8"/><circle cx="110" cy="145" r="7"/></g>
+          <g fill="#B98A5C"><circle cx="95" cy="98" r="6"/><circle cx="175" cy="120" r="7"/><circle cx="60" cy="150" r="5"/></g>
+        </g>
+
+        <!-- SOAP bubbles overlay -->
+        <g id="soap" opacity="0">
+          <g fill="#fff" stroke="#BFE3F5" stroke-width="3">
+            <circle cx="60" cy="96" r="24"/><circle cx="110" cy="70" r="28"/><circle cx="165" cy="86" r="26"/>
+            <circle cx="210" cy="70" r="22"/><circle cx="90" cy="120" r="20"/><circle cx="150" cy="118" r="22"/><circle cx="205" cy="116" r="18"/>
+            <circle cx="40" cy="130" r="16"/><circle cx="235" cy="96" r="16"/>
+          </g>
+          <g fill="#EAF7FF"><circle cx="104" cy="64" r="8"/><circle cx="160" cy="80" r="7"/><circle cx="56" cy="90" r="6"/></g>
+        </g>
+
+        <!-- SHINE sparkles for clean/dry -->
+        <g id="shine" opacity="0" fill="#FFF6B0" stroke="#FFD24A" stroke-width="2">
+          <path d="M120 40 l6 14 14 6 -14 6 -6 14 -6 -14 -14 -6 14 -6 z"/>
+          <path d="M210 100 l4 9 9 4 -9 4 -4 9 -4 -9 -9 -4 9 -4 z"/>
+          <path d="M60 110 l4 9 9 4 -9 4 -4 9 -4 -9 -9 -4 9 -4 z"/>
+        </g>
+      </g>
+
+      <!-- ===== DUMP TRUCK ===== -->
+      <g id="truck" transform="translate(300,150)">
+        <!-- fan (only in dry stage) -->
+        <g id="fan" opacity="0" transform="translate(-120,60)">
+          <rect x="30" y="70" width="16" height="70" rx="6" fill="#7A5230"/>
+          <rect x="6" y="132" width="64" height="16" rx="8" fill="#5A6172"/>
+          <circle cx="38" cy="52" r="46" fill="#CFE9F4" stroke="#5A6172" stroke-width="5"/>
+          <g class="fanblade" fill="#4AA3DF" stroke="#2E7FC0" stroke-width="3">
+            <path d="M38 52 Q34 10 58 16 Q46 40 38 52 Z"/>
+            <path d="M38 52 Q80 48 74 72 Q50 60 38 52 Z"/>
+            <path d="M38 52 Q42 94 18 88 Q30 64 38 52 Z"/>
+            <path d="M38 52 Q-4 56 2 32 Q26 44 38 52 Z"/>
+          </g>
+          <circle cx="38" cy="52" r="8" fill="#F04E37"/>
+        </g>
+
+        <!-- payloads in the bed -->
+        <g id="bed" transform-origin="150px 96px">
+          <!-- bed box -->
+          <path d="M78 40 L212 40 L226 104 L64 104 Z" fill="var(--truck-red)" stroke="#B4301F" stroke-width="5" stroke-linejoin="round"/>
+          <!-- sand payload -->
+          <path id="loadSand" d="M92 44 Q145 20 198 44 Z" fill="var(--dirt)"/>
+          <!-- soap payload -->
+          <g id="loadSoap" opacity="0" fill="#fff" stroke="#BFE3F5" stroke-width="2">
+            <circle cx="120" cy="42" r="14"/><circle cx="150" cy="34" r="15"/><circle cx="180" cy="42" r="13"/>
+          </g>
+          <!-- water payload -->
+          <path id="loadWater" opacity="0" d="M92 44 Q145 26 198 44 L198 46 Q145 30 92 46 Z" fill="var(--water)"/>
+        </g>
+
+        <!-- cab -->
+        <rect x="212" y="52" width="70" height="70" rx="14" fill="var(--truck)" stroke="#C98A00" stroke-width="5"/>
+        <rect x="224" y="62" width="42" height="34" rx="8" fill="#D7F1FF"/>
+        <circle cx="238" cy="80" r="7" fill="#fff"/><circle cx="256" cy="80" r="7" fill="#fff"/>
+        <circle cx="240" cy="82" r="3.5" fill="#2A2E38"/><circle cx="258" cy="82" r="3.5" fill="#2A2E38"/>
+        <!-- chassis -->
+        <rect x="60" y="104" width="228" height="20" rx="8" fill="#3A3F4B"/>
+        <!-- wheels -->
+        <g fill="#242832"><circle cx="110" cy="128" r="24"/><circle cx="240" cy="128" r="24"/></g>
+        <g fill="#5A6172"><circle cx="110" cy="128" r="9"/><circle cx="240" cy="128" r="9"/></g>
+      </g>
+
+      <!-- particles layer -->
+      <g id="particles"></g>
+      <!-- wind gusts -->
+      <g id="wind" opacity="0" stroke="#BFE3F5" stroke-width="6" stroke-linecap="round" fill="none">
+        <path d="M300 170 q40 -12 80 0"/><path d="M300 210 q46 12 92 0"/><path d="M310 250 q40 -10 80 0"/>
+      </g>
+    </svg>
+
+    <div class="meterwrap"><div class="meter" id="meter"></div></div>
+    <div class="cheer" id="cheer">YAY!</div>
+  </figure>
+
+  <p class="prompt" id="prompt">Cover the bulldozer!</p>
+  <button class="action" id="action">
+    <span class="bigem" id="actionEm">🚚</span><span id="actionLabel">DUMP!</span>
+  </button>
+  <div class="hint">Tap the button — or press <b>Space</b> / arrow keys</div>
+
+  <div class="win" id="win">
+    <h2>You did it! ✨</h2>
+    <p class="prompt" style="color:var(--dozer-dark)">The bulldozer is squeaky clean and dry!</p>
+    <button class="again" id="again">Play again 🔁</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var STAGES=[
+    {id:'cover', em:'🏜️', nm:'Cover',  prompt:'Cover the bulldozer in dirt!', label:'DUMP!',  actEm:'🚚', say:'Cover the bulldozer in dirt!'},
+    {id:'soap',  em:'🫧', nm:'Soap',   prompt:'Splash on the soapy water!',    label:'SOAP!',  actEm:'🫧', say:'Now splash on the soapy water!'},
+    {id:'rinse', em:'💧', nm:'Rinse',  prompt:'Rinse all the soap away!',      label:'RINSE!', actEm:'💧', say:'Rinse all the soap away!'},
+    {id:'dry',   em:'🌀', nm:'Dry',    prompt:'Turn on the big fan to dry!',   label:'DRY!',   actEm:'🌀', say:'Last one! Turn on the big fan to dry!'}
+  ];
+  var TAPS=4;
+  var stageIdx=0, prog=0, busy=false, done=false, started=false;
+
+  var $=function(id){return document.getElementById(id)};
+  var stepsEl=$('steps'), meter=$('meter'), prompt=$('prompt'),
+      action=$('action'), actionEm=$('actionEm'), actionLabel=$('actionLabel'),
+      cheer=$('cheer'), win=$('win'),
+      dirt=$('dirt'), soap=$('soap'), shine=$('shine'), wind=$('wind'), fan=$('fan'),
+      bed=$('bed'), truck=$('truck'), dozer=$('dozer'), dozerBody=$('dozerBody'),
+      loadSand=$('loadSand'), loadSoap=$('loadSoap'), loadWater=$('loadWater'),
+      particles=$('particles');
+
+  // build step chips
+  STAGES.forEach(function(s,i){
+    var d=document.createElement('div');
+    d.className='step';d.id='step'+i;
+    d.innerHTML='<span class="em">'+s.em+'</span><span class="nm">'+s.nm+'</span>';
+    stepsEl.appendChild(d);
+  });
+
+  /* ---------- sound ---------- */
+  var AC=null, muted=false;
+  function ac(){ if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}} return AC; }
+  function beep(freq,dur,type,when,vol){
+    if(muted)return; var c=ac(); if(!c)return;
+    var t=c.currentTime+(when||0);
+    var o=c.createOscillator(), g=c.createGain();
+    o.type=type||'sine'; o.frequency.value=freq;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol||.25,t+.02);
+    g.gain.exponentialRampToValueAtTime(.0001,t+(dur||.15));
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t+(dur||.15)+.02);
+  }
+  function chord(list){ list.forEach(function(f,i){beep(f,.4,'triangle',i*.07,.28)}); }
+  // spoken narration for pre-readers
+  var canSpeak = 'speechSynthesis' in window;
+  function say(text){
+    if(muted||!canSpeak)return;
+    try{
+      window.speechSynthesis.cancel();
+      var u=new SpeechSynthesisUtterance(text);
+      u.rate=.92; u.pitch=1.25; u.volume=1;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+  $('mute').onclick=function(){
+    muted=!muted; this.textContent=muted?'🔇':'🔊';
+    if(muted && canSpeak){ try{window.speechSynthesis.cancel()}catch(e){} }
+    if(!muted){ var c=ac(); if(c&&c.state==='suspended')c.resume(); beep(660,.12,'sine',0,.25); say('Sound on!'); }
+  };
+
+  /* ---------- particles ---------- */
+  function spawn(kind){
+    var colors={cover:['#9B6A3F','#7A5230','#B98A5C'],
+                soap:['#ffffff','#EAF7FF','#CFE9F4'],
+                rinse:['#4AA3DF','#7EC8E3','#BFE3F5']};
+    var cols=colors[kind]||colors.cover;
+    var n=8;
+    for(var i=0;i<n;i++){
+      var c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      var sx=330+Math.random()*40, sy=210+Math.random()*20;
+      c.setAttribute('cx',sx); c.setAttribute('cy',sy);
+      c.setAttribute('r', kind==='rinse'?4:(5+Math.random()*5));
+      c.setAttribute('fill', cols[i%cols.length]);
+      c.style.setProperty('transform-box','fill-box');
+      var tx=100+Math.random()*150, ty=40+Math.random()*70;
+      c.style.setProperty('--tx',tx+'px'); c.style.setProperty('--ty',ty+'px');
+      c.style.animation='fly .55s ease-in forwards';
+      particles.appendChild(c);
+      c.addEventListener('animationend',function(){this.remove()});
+    }
+  }
+
+  /* ---------- render state onto scene ---------- */
+  function clamp(v){return Math.max(0,Math.min(1,v))}
+  function render(){
+    var cover=0, soapA=0, dry=0;
+    if(stageIdx===0){cover=prog;}
+    else if(stageIdx===1){cover=1;soapA=prog;}
+    else if(stageIdx===2){cover=1-prog;soapA=1-prog;}
+    else if(stageIdx===3){cover=0;soapA=0;dry=prog;}
+    if(done){cover=0;soapA=0;dry=1;}
+
+    dirt.setAttribute('opacity',cover.toFixed(2));
+    dirt.setAttribute('transform','translate(0,'+((1-cover)*30).toFixed(1)+')');
+    soap.setAttribute('opacity',soapA.toFixed(2));
+    // shine appears as it gets clean (stage>=2) and full when dry/done
+    var sh = stageIdx>=3 ? dry : (stageIdx===2? prog*0.5 : 0);
+    if(done) sh=1;
+    shine.setAttribute('opacity',sh.toFixed(2));
+
+    // truck payload visibility per stage
+    loadSand.setAttribute('opacity', stageIdx===0?1:0);
+    loadSoap.setAttribute('opacity', stageIdx===1?1:0);
+    loadWater.setAttribute('opacity', stageIdx===2?1:0);
+
+    // fan on only in dry stage
+    fan.setAttribute('opacity', stageIdx===3?1:0);
+    truck.classList.toggle('fan-on', stageIdx===3 && !done);
+
+    meter.style.width=(prog*100)+'%';
+  }
+
+  function setStageUI(speak){
+    var s=STAGES[stageIdx];
+    prompt.textContent=s.prompt;
+    if(speak) say(s.say);
+    actionLabel.textContent=s.label;
+    actionEm.textContent=s.actEm;
+    STAGES.forEach(function(_,i){
+      var el=$('step'+i);
+      el.classList.toggle('active', i===stageIdx);
+      el.classList.toggle('done', i<stageIdx);
+    });
+  }
+
+  /* ---------- one tap of the action ---------- */
+  function doAction(){
+    if(busy||done)return;
+    var c=ac(); if(c&&c.state==='suspended')c.resume();
+    if(!started){ started=true; say(STAGES[stageIdx].say); }
+    action.classList.remove('tap'); void action.offsetWidth; action.classList.add('tap');
+
+    if(stageIdx===3){
+      // drying: fan gust + wobble, no dump tilt
+      wind.setAttribute('opacity','1');
+      setTimeout(function(){wind.setAttribute('opacity','0')},400);
+      dozer.classList.remove('wobble'); void dozer.offsetWidth; dozer.classList.add('wobble');
+      beep(520+prog*400,.18,'sawtooth',0,.14);
+    } else {
+      // dump tilt of bed + particles
+      bed.style.transition='transform .18s'; bed.style.transform='rotate(-16deg)';
+      setTimeout(function(){bed.style.transform='rotate(0)'},230);
+      spawn(STAGES[stageIdx].id);
+      var base={cover:200,soap:440,rinse:340}[STAGES[stageIdx].id]||300;
+      beep(base+prog*260,.16,'square',0,.16);
+    }
+
+    prog=clamp(prog+1/TAPS);
+    render();
+
+    if(prog>=0.999){
+      busy=true;
+      cheer.textContent=['NICE!','GREAT!','WOW!','SUPER!'][stageIdx];
+      cheer.classList.remove('show'); void cheer.offsetWidth; cheer.classList.add('show');
+      chord([523,659,784]);
+      say(cheer.textContent);
+      dozer.classList.remove('wobble'); void dozer.offsetWidth; dozer.classList.add('wobble');
+      setTimeout(nextStage,950);
+    }
+  }
+
+  function nextStage(){
+    $('step'+stageIdx).classList.add('done');
+    if(stageIdx>=STAGES.length-1){ return winGame(); }
+    stageIdx++; prog=0; busy=false;
+    setStageUI(true); render();
+  }
+
+  function winGame(){
+    done=true; busy=true;
+    setStageUI(); render();
+    action.style.display='none'; prompt.style.display='none';
+    document.querySelector('.hint').style.display='none';
+    win.classList.add('show');
+    cheer.textContent='CLEAN!'; cheer.classList.remove('show'); void cheer.offsetWidth; cheer.classList.add('show');
+    chord([523,659,784,1047,1319]);
+    say('You did it! The bulldozer is all clean!');
+    // celebratory confetti particles
+    var kinds=['soap','rinse'];
+    var burst=setInterval(function(){spawn(kinds[Math.floor(Math.random()*2)])},260);
+    setTimeout(function(){clearInterval(burst)},1600);
+    dozer.classList.remove('wobble'); void dozer.offsetWidth; dozer.classList.add('wobble');
+  }
+
+  function reset(){
+    stageIdx=0; prog=0; busy=false; done=false;
+    action.style.display=''; prompt.style.display='';
+    document.querySelector('.hint').style.display='';
+    win.classList.remove('show');
+    truck.classList.remove('fan-on');
+    setStageUI(true); render();
+    beep(660,.15,'triangle',0,.25);
+  }
+  $('again').onclick=reset;
+
+  /* ---------- inputs ---------- */
+  action.addEventListener('click',doAction);
+  window.addEventListener('keydown',function(e){
+    var k=e.key;
+    if(k===' '||k==='Enter'||k==='ArrowUp'||k==='ArrowDown'||k==='ArrowLeft'||k==='ArrowRight'){
+      e.preventDefault();
+      if(win.classList.contains('show')) reset(); else doAction();
+    }
+  });
+
+  // add fly keyframes (needs to be in a stylesheet the SVG can use)
+  var st=document.createElement('style');
+  st.textContent='@keyframes fly{from{transform:translate(0,0);opacity:1}to{transform:translate(var(--tx),var(--ty));opacity:0}}';
+  document.head.appendChild(st);
+
+  setStageUI(); render();
+})();
+</script>
+</body>
+</html>
